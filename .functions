@@ -1,3 +1,40 @@
+# Setup paths
+remove_from_path() {
+  [ -d $1 ] || return
+  # Doesn't work for first item in the PATH but I don't care.
+  export PATH=$(echo $PATH | sed -e "s|:$1||") 2>/dev/null
+}
+
+add_to_path_start() {
+  [ -d $1 ] || return
+  remove_from_path "$1"
+  export PATH="$1:$PATH"
+}
+
+add_to_path_end() {
+  [ -d "$1" ] || return
+  remove_from_path "$1"
+  export PATH="$PATH:$1"
+}
+
+force_add_to_path_start() {
+  remove_from_path "$1"
+  export PATH="$1:$PATH"
+}
+
+quiet_which() {
+  which $1 1>/dev/null 2>/dev/null
+}
+
+# Save directory changes
+cd() {
+  builtin cd "$@" || return
+  [ $TERMINALAPP ] && which set_terminal_app_pwd &>/dev/null \
+    && set_terminal_app_pwd
+  pwd > "$HOME/.lastpwd"
+  ls
+}
+
 # Simple calculator
 function calc() {
 	local result="";
@@ -32,7 +69,7 @@ function targz() {
 	tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1;
 
 	size=$(
-		stat -f"%z" "${tmpFile}" 2> /dev/null; # OS X `stat`
+		# stat -f"%z" "${tmpFile}" 2> /dev/null; # OS X `stat`
 		stat -c"%s" "${tmpFile}" 2> /dev/null # GNU `stat`
 	);
 
@@ -129,11 +166,6 @@ function json() {
 	else # pipe
 		python -mjson.tool | pygmentize -l javascript;
 	fi;
-}
-
-# Run `dig` and display the most useful info
-function digga() {
-	dig +nocmd "$1" any +multiline +noall +answer;
 }
 
 # UTF-8-encode a string of Unicode symbols
